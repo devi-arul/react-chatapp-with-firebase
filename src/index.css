@@ -1,0 +1,36 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+body{
+  background-image: url('/bgimage.jpg');
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  height: 100vh;
+  color: aliceblue;
+}
+
+.container{
+  width: 90vw;
+  height: 90vh;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px) saturate(180%);
+  display: flex;
+}
+
+.loading{
+  padding: 40px;
+  font-size: 30px;
+  border-radius: 10px;
+  background-color: rgba(17,25,40,0.9);
+}
+
+
+
+
