@@ -25,7 +25,7 @@ const App = () => {
     };
   },[fetchUserInfo]);
 
-  console.log(currentUser);
+  // console.log(currentUser);
 
   if(isLoading) return <div className="loading">Loading...</div>
   
@@ -34,8 +34,8 @@ const App = () => {
       {currentUser ? (
         <>
           <List/>
-          {chatId&&<Chat />}
-          {chatId&&<Detail />}
+          <Chat />
+          <Detail />
         </>
       ):(
         <Login/>

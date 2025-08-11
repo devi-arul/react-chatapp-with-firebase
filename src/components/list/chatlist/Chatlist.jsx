@@ -39,7 +39,7 @@ const Chatlist = () => {
                 console.log("Processing", data.chats.length, "chats");
 
                 // Get details for each chat
-                const chatDetails = await Promise.all(
+                let chatDetails = await Promise.all(
                     data.chats.map(async (chat) => {
                         console.log("Processing chat object:", chat);
                         
@@ -81,6 +81,11 @@ const Chatlist = () => {
                     })
                 );
 
+                // Sort chats by most recent activity
+                chatDetails = chatDetails
+                  .filter(Boolean)
+                  .sort((a, b) => (b?.updatedAt || 0) - (a?.updatedAt || 0));
+
                 console.log("Final processed chat details:", chatDetails);
                 setChats(chatDetails);
             } else {
@@ -98,30 +103,38 @@ const Chatlist = () => {
     console.log("Current user:", currentUser);
     console.log("Current chats state:", chats);
 
-    const handleSelect = async(chat)=>{
-        const userChats = chats.map((item)=>{
-            const {user,...rest} = item;
-            return rest;
-        });
+    const handleSelect = async (chat) => {
+        // Always switch to the chat even if the "seen" update fails
+        const userChatRef = doc(db, "Userschats", currentUser.id);
 
-        const chatIndex = userChats.findIndex(
-            (item)=>item.chatId === chat.chatId
-        );
-        
-        userChats[chatIndex].isSeen = true;
+        try {
+            const userChats = chats.map((item) => {
+                const { user, ...rest } = item;
+                return rest;
+            });
 
-        const userChatRef = doc(db,"Userschats",currentUser.id);
-
-        try{
-            await updateDoc(userChatRef,{
-                chats:userChats,
-            })
-            changeChat(chat.chatId,chat.user);
-        }catch(err){
-
+            const chatIndex = userChats.findIndex((item) => item.chatId === chat.chatId);
+            if (chatIndex !== -1) {
+                userChats[chatIndex].isSeen = true;
+                await updateDoc(userChatRef, {
+                    chats: userChats,
+                });
+            }
+        } catch (err) {
+            // ignore update error; UI should still navigate to chat
+        } finally {
+            changeChat(chat.chatId, chat.user);
         }
-
     };
+
+    // Auto-select the most recent chat after login
+    useEffect(() => {
+        // Auto-open most recent chat once after login when there is no selected chat
+        if (!chatId && chats && chats.length > 0) {
+            // Defer to next tick to avoid potential state update during render warnings
+            setTimeout(() => handleSelect(chats[0]), 0);
+        }
+    }, [chats, chatId]);
 
     const filteredChats = chats.filter((c) =>
         c.user?.Username?.toLowerCase().includes((input || "").toLowerCase())

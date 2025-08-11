@@ -48,6 +48,13 @@ const AddUser = () =>{
         if (!user || !currentUser) return;
 
         try {
+            // Ensure both participants have Userschats doc
+            const currentUserChatsRef = doc(db, "Userschats", currentUser.id);
+            const currentUserChatsSnap = await getDoc(currentUserChatsRef);
+            if (!currentUserChatsSnap.exists()) {
+                await setDoc(currentUserChatsRef, { chats: [] });
+            }
+
             const userChatsRef = doc(db, "Userschats", currentUser.id);
             const userChatsSnap = await getDoc(userChatsRef);
             
@@ -77,6 +84,13 @@ const AddUser = () =>{
                         createdAt: serverTimestamp(),
                         messages: [],
                     });
+
+                    // Ensure receiver has Userschats doc
+                    const receiverChatsRef = doc(db, "Userschats", user.id);
+                    const receiverChatsSnap = await getDoc(receiverChatsRef);
+                    if (!receiverChatsSnap.exists()) {
+                        await setDoc(receiverChatsRef, { chats: [] });
+                    }
 
                     await updateDoc(doc(db, "Userschats", user.id), {
                         chats: arrayUnion({

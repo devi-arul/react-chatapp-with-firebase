@@ -1,7 +1,7 @@
 import { toast } from "react-toastify";
 import "./login.css";
 import {useState} from "react";
-import { createUserWithEmailAndPassword , signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword , signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { auth, db } from "../../library/firebase";
 import { doc, setDoc } from "firebase/firestore"; 
 
@@ -28,13 +28,15 @@ const Login = () => {
         setLoading(true);
         const formData = new FormData(e.target);
         const {Username, Email, Password} = Object.fromEntries(formData);
+        const email = (Email || "").trim();
+        const password = (Password || "").trim();
         
         try{
-            const response = await createUserWithEmailAndPassword(auth,Email,Password)
+            const response = await createUserWithEmailAndPassword(auth, email, password)
             
             await setDoc(doc(db, "Users", response.user.uid), {
             Username,
-            Email,
+            Email: email,
             id:response.user.uid,
             blocked:[],
             });
@@ -47,7 +49,13 @@ const Login = () => {
         
         }catch(err){
             console.log(err)
-            toast.error(err.message)
+            // Provide clearer messages for common cases
+            const friendly =
+              err?.code === "auth/email-already-in-use" ? "Email already in use" :
+              err?.code === "auth/invalid-email" ? "Invalid email format" :
+              err?.code === "auth/weak-password" ? "Password should be at least 6 characters" :
+              err?.message || "Registration failed";
+            toast.error(friendly)
         }finally{
             setLoading(false);
         }
@@ -59,17 +67,40 @@ const Login = () => {
 
         const formData = new FormData(e.target);
         const {Email, Password} = Object.fromEntries(formData);
+        const email = (Email || "").trim();
+        const password = (Password || "").trim();
 
         try{
-            await signInWithEmailAndPassword(auth, Email, Password);
+            await signInWithEmailAndPassword(auth, email, password);
 
             toast.success("Login Successful");
 
         }catch(err){
             console.log(err);
-            toast.error(err.message);
+            const friendly =
+              err?.code === "auth/invalid-credential" || err?.code === "auth/wrong-password" ? "Invalid email or password" :
+              err?.code === "auth/user-not-found" ? "No account found for this email" :
+              err?.code === "auth/invalid-email" ? "Invalid email format" :
+              err?.message || "Login failed";
+            toast.error(friendly);
         }finally{
             setLoading(false);
+        }
+    }
+
+    const handlePasswordReset = async () => {
+        const emailInput = window.prompt("Enter your email to reset password:");
+        const email = (emailInput || "").trim();
+        if (!email) return;
+        try {
+            await sendPasswordResetEmail(auth, email);
+            toast.success("Password reset email sent");
+        } catch (err) {
+            const friendly =
+              err?.code === "auth/user-not-found" ? "No account found for this email" :
+              err?.code === "auth/invalid-email" ? "Invalid email format" :
+              err?.message || "Failed to send reset email";
+            toast.error(friendly);
         }
     }
 
@@ -78,9 +109,10 @@ const Login = () => {
             <div className="item">
                 <h2>Welcome back Buddy</h2>
                 <form onSubmit={handleLogin}>
-                    <input type="text" placeholder="Enter Email" name="Email"/>
+                    <input type="email" placeholder="Enter Email" name="Email"/>
                     <input type="password" placeholder="Enter Password" name="Password"/>
                     <button disabled={loading}>{loading ? "Loading":"Log in"}</button>
+                    <button type="button" onClick={handlePasswordReset} disabled={loading} style={{marginLeft: 8}}>Forgot password?</button>
                 </form>
             </div>
             <div className="seperator">
@@ -95,7 +127,7 @@ const Login = () => {
                     </label>
                     <input type="file" id="file" style={{display:"none"}} onChange={handleAvatar}/>
                     <input type="text" placeholder="Username" name="Username" />
-                    <input type="text" placeholder="Enter Email" name="Email"/>
+                    <input type="email" placeholder="Enter Email" name="Email"/>
                     <input type="password" placeholder="Enter Password" name="Password"/>
                     <button disabled={loading}>{loading ? "Loading":"Create"}</button>
                 </form>
